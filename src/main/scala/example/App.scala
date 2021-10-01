@@ -12,8 +12,11 @@ trait ZIOApp {
 
   def run: ZIO[Any]
 
-  def main(args: Array[String]) =
-    println(s"Result: ${run.run}")
+  def main(args: Array[String]) = {
+    run.run {
+      result => println(s"Result: $result")
+    }
+  }
 }
 
 object succeedNow extends ZIOApp {
