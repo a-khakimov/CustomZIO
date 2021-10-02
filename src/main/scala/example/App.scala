@@ -121,3 +121,15 @@ object as extends ZIOApp {
 
   def run = flatMappedZIO
 }
+
+object async extends ZIOApp {
+
+  val asyncZIO: ZIO[Int] =
+    ZIO.async[Int] { complete =>
+      println("Async started")
+      Thread.sleep(1000)
+      complete(10)
+    }
+
+  def run = asyncZIO
+}
