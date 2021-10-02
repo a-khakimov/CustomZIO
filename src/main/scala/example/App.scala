@@ -51,3 +51,11 @@ object succeedAgain extends ZIOApp {
 
   def run: ZIO[Unit] = printLine("Hui!")
 }
+
+object zip extends ZIOApp {
+
+  def zippedZIO: ZIO[(Int, String)] =
+    ZIO.succeed(42) zip ZIO.succeed("Hui")
+
+  def run: ZIO[(Int, String)] = zippedZIO
+}
