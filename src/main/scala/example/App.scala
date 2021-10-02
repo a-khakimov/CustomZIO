@@ -12,7 +12,7 @@ trait ZIOApp {
 
   def run: ZIO[Any]
 
-  def main(args: Array[String]) = {
+  def main(args: Array[String]): Unit = {
     run.run {
       result => println(s"Result: $result")
     }
@@ -25,5 +25,12 @@ object succeedNow extends ZIOApp {
     ZIO.succeedNow(Person.peter)
 
   def run: ZIO[Person] = peterZIO
+}
 
+object succeedNowOhUh extends ZIOApp {
+
+  val helloZIO: ZIO[Unit] =
+    ZIO.succeedNow(println("Hello!"))
+
+  def run: ZIO[Unit] = helloZIO
 }
