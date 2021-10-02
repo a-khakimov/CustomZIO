@@ -72,3 +72,19 @@ object map extends ZIOApp {
 
   def run: ZIO[Person] = mappedZIO
 }
+
+object mapUhOh extends ZIOApp {
+
+  val zippedZIO: ZIO[(Int, String)] =
+    ZIO.succeed(42) zip ZIO.succeed("Hui")
+
+  def printLine(message: String): ZIO[Unit] =
+    ZIO.succeed(println(message))
+
+  val flatMappedZIO: ZIO[Unit] =
+    zippedZIO.flatMap { tuple =>
+      printLine(s"Tuple: $tuple")
+    }
+
+  def run: ZIO[Unit] = flatMappedZIO
+}
