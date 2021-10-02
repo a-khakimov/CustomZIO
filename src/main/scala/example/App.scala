@@ -39,7 +39,7 @@ object succeedNowOhUh extends ZIOApp {
 object succeed extends ZIOApp {
 
   val helloZIO: ZIO[Unit] =
-    ZIO.succeed(() => println("Hello!"))
+    ZIO.succeed(println("Hello!"))
 
-  def run: ZIO[Unit] = ZIO.succeedNow(42)
+  def run: ZIO[Unit] = helloZIO
 }

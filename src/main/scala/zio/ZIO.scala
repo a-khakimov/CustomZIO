@@ -6,7 +6,9 @@ sealed trait ZIO[+A] {
 
 object ZIO {
 
-  def succeed[A](f: () => A): ZIO[A] = ZIO.Effect(f)
+  // call by name
+  def succeed[A](f: => A): ZIO[A] =
+    ZIO.Effect(() => f)
 
   def succeedNow[A](value: A): ZIO[A] = ZIO.Succeed(value)
 
