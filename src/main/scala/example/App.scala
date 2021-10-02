@@ -29,8 +29,9 @@ object succeedNow extends ZIOApp {
 
 object succeedNowOhUh extends ZIOApp {
 
+  // not lazy
   val helloZIO: ZIO[Unit] =
     ZIO.succeedNow(println("Hello!"))
 
-  def run: ZIO[Unit] = helloZIO
+  def run: ZIO[Unit] = ZIO.succeedNow(value = 42)
 }
