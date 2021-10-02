@@ -104,3 +104,20 @@ object forComprehension extends ZIOApp {
 
   def run = flatMappedZIO
 }
+
+object as extends ZIOApp {
+
+  val zippedZIO: ZIO[(Int, String)] =
+    ZIO.succeed(42) zip ZIO.succeed("Hui")
+
+  def printLine(message: String): ZIO[Unit] =
+    ZIO.succeed(println(message))
+
+  val flatMappedZIO =
+    zippedZIO.flatMap { t =>
+      printLine(s"Tuple: $t")
+        .as("Nice")
+    }
+
+  def run = flatMappedZIO
+}

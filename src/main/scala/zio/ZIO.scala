@@ -12,6 +12,9 @@ sealed trait ZIO[+A] { self =>
 
   def flatMap[B](f: A => ZIO[B]): ZIO[B] =
     ZIO.FlatMap(self, f)
+
+  def as[B](value: B): ZIO[B] =
+    self.map(_ => value)
 }
 
 object ZIO {
