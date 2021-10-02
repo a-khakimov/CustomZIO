@@ -2,10 +2,10 @@ package example
 
 import zio.ZIO
 
-case class Person(name: String)
+case class Person(name: String, age: Int)
 
 object Person {
-  val peter: Person = Person("Peter")
+  val peter: Person = Person("Peter", 25)
 }
 
 trait ZIOApp {
@@ -54,8 +54,21 @@ object succeedAgain extends ZIOApp {
 
 object zip extends ZIOApp {
 
-  def zippedZIO: ZIO[(Int, String)] =
+  val zippedZIO: ZIO[(Int, String)] =
     ZIO.succeed(42) zip ZIO.succeed("Hui")
 
   def run: ZIO[(Int, String)] = zippedZIO
+}
+
+object map extends ZIOApp {
+
+  val zippedZIO: ZIO[(Int, String)] =
+    ZIO.succeed(42) zip ZIO.succeed("Hui")
+
+  val mappedZIO: ZIO[Person] =
+    zippedZIO.map {
+      case (int, string) => Person(string, int)
+    }
+
+  def run: ZIO[Person] = mappedZIO
 }

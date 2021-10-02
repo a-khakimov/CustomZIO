@@ -6,6 +6,9 @@ sealed trait ZIO[+A] { self =>
 
   def zip[B](that: ZIO[B]): ZIO[(A, B)] =
     ZIO.Zip(self, that)
+
+  def map[B](f: A => B): ZIO[B] =
+    ZIO.Map(self, f)
 }
 
 object ZIO {
@@ -32,6 +35,13 @@ object ZIO {
         right.run { b =>
           callback(a, b)
         }
+      }
+  }
+
+  case class Map[A, B](zio: ZIO[A], f: A => B) extends ZIO[B] {
+    override def run(callback: B => Unit): Unit =
+      zio.run { a =>
+        callback(f(a))
       }
   }
 }
