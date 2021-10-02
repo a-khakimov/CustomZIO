@@ -73,7 +73,7 @@ object map extends ZIOApp {
   def run: ZIO[Person] = mappedZIO
 }
 
-object mapUhOh extends ZIOApp {
+object flatMap extends ZIOApp {
 
   val zippedZIO: ZIO[(Int, String)] =
     ZIO.succeed(42) zip ZIO.succeed("Hui")
@@ -87,4 +87,20 @@ object mapUhOh extends ZIOApp {
     }
 
   def run: ZIO[Unit] = flatMappedZIO
+}
+
+object forComprehension extends ZIOApp {
+
+  val zippedZIO: ZIO[(Int, String)] =
+    ZIO.succeed(42) zip ZIO.succeed("Hui")
+
+  def printLine(message: String): ZIO[Unit] =
+    ZIO.succeed(println(message))
+
+  val flatMappedZIO = for {
+    tuple <- zippedZIO
+    _     <- printLine(s"Tuple: $tuple")
+  } yield "Nice"
+
+  def run = flatMappedZIO
 }
