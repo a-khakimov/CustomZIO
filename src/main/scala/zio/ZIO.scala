@@ -46,7 +46,7 @@ class FiberImpl[A](zio: ZIO[A]) extends Fiber[A] {
 sealed trait ZIO[+A] { self =>
 
   def map[B](f: A => B): ZIO[B] =
-    flatMap(f andThen ZIO.succeedNow)
+    ZIO.Map(self, f)
 
   def flatMap[B](f: A => ZIO[B]): ZIO[B] =
     ZIO.FlatMap(self, f)
@@ -92,8 +92,7 @@ sealed trait ZIO[+A] { self =>
     type Erased = ZIO[Any]
     type Cont   = Any => Erased
 
-    def erase[A](zio: ZIO[A]): Erased =
-      zio
+    def erase[A](zio: ZIO[A]): Erased = zio
 
     val stack = scala.collection.mutable.Stack[Cont]()
 
@@ -111,7 +110,7 @@ sealed trait ZIO[+A] { self =>
       }
 
     while (loop) {
-      println(s"$currentZIO - $stack")
+
       currentZIO match {
 
         case ZIO.Succeed(value) =>
@@ -119,6 +118,10 @@ sealed trait ZIO[+A] { self =>
 
         case ZIO.Effect(thunk) =>
           complete(thunk())
+
+        case ZIO.Map(zio, cont) =>
+          stack.push(cont andThen ZIO.succeedNow)
+          currentZIO = zio
 
         case ZIO.FlatMap(zio, cont) =>
           stack.push(cont)
@@ -153,6 +156,8 @@ object ZIO {
   case class Succeed[A](value: A) extends ZIO[A]
 
   case class Effect[A](f: () => A) extends ZIO[A]
+
+  case class Map[A, B](zio: ZIO[A], f: A => B) extends ZIO[B]
 
   case class FlatMap[A, B](zio: ZIO[A], f: A => ZIO[B]) extends ZIO[B]
 
