@@ -104,6 +104,11 @@ sealed trait ZIO[+A] { self =>
 
     var loop = true
 
+    def resume(): Unit = {
+      loop = true
+      run()
+    }
+
     def complete(value: Any): Unit =
       if (stack.isEmpty) {
         loop = false
@@ -113,43 +118,50 @@ sealed trait ZIO[+A] { self =>
         currentZIO = cont(value)
       }
 
-    while (loop) {
+    def run(): Unit = {
 
-      currentZIO match {
+      while (loop) {
 
-        case ZIO.Succeed(value) =>
-          complete(value)
+        println(currentZIO)
 
-        case ZIO.Effect(thunk) =>
-          complete(thunk())
+        currentZIO match {
 
-        case ZIO.Map(zio, cont) =>
-          stack.push(cont andThen ZIO.succeedNow)
-          currentZIO = zio
+          case ZIO.Succeed(value) =>
+            complete(value)
 
-        case ZIO.FlatMap(zio, cont) =>
-          stack.push(cont)
-          currentZIO = zio
+          case ZIO.Effect(thunk) =>
+            complete(thunk())
 
-        case ZIO.Async(register) =>
-          if (stack.isEmpty) {
-            loop = false
-            register(eraseCallback(callback))
-          } else {
-            register { a =>
-              val cont = stack.pop()
-              currentZIO = cont(a)
+          case ZIO.Map(zio, cont) =>
+            stack.push(cont andThen ZIO.succeedNow)
+            currentZIO = zio
+
+          case ZIO.FlatMap(zio, cont) =>
+            stack.push(cont)
+            currentZIO = zio
+
+          case ZIO.Async(register) =>
+            if (stack.isEmpty) {
+              loop = false
+              register(eraseCallback(callback))
+            } else {
+              loop = false
+              register { a =>
+                currentZIO = ZIO.succeedNow(a)
+                resume()
+              }
             }
-          }
-          //register(callback)
 
-        //case ZIO.Fork(zio) =>
+          //case ZIO.Fork(zio) =>
           //???
           //val fiber: Fiber[A] = new FiberImpl(zio)
           //fiber.start()
           //callback(fiber)
+        }
       }
     }
+
+    run()
   }
 }
 

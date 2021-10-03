@@ -175,7 +175,7 @@ object stackSafety extends ZIOApp {
 
   val program: ZIO[Unit] =
     ZIO.succeed(println("Hui"))
-      .repeat(20)
+      .repeat(5)
 
   def run: ZIO[Unit] = program
 }
