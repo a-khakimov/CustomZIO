@@ -39,7 +39,10 @@ sealed trait ZIO[+A] { self =>
   def run(callback: A => Unit): Unit
 
   def zip[B](that: ZIO[B]): ZIO[(A, B)] =
-    ZIO.Zip(self, that)
+    for {
+      a <- self
+      b <- that
+    } yield (a, b)
 
   def map[B](f: A => B): ZIO[B] =
     ZIO.Map(self, f)
@@ -52,6 +55,14 @@ sealed trait ZIO[+A] { self =>
 
   def fork: ZIO[Fiber[A]] =
     ZIO.Fork(self)
+
+  def zipPar[B](that: ZIO[B]): ZIO[(A, B)] =
+    for {
+      aF <- self.fork
+      bF <- that.fork
+      a <- aF.join
+      b <- bF.join
+    } yield (a, b)
 }
 
 object ZIO {
@@ -74,15 +85,6 @@ object ZIO {
   case class Effect[A](f: () => A) extends ZIO[A] {
     override def run(callback: A => Unit): Unit =
       callback(f())
-  }
-
-  case class Zip[A, B](left: ZIO[A], right: ZIO[B]) extends ZIO[(A, B)] {
-    override def run(callback: ((A, B)) => Unit): Unit =
-      left.run { a =>
-        right.run { b =>
-          callback(a, b)
-        }
-      }
   }
 
   case class Map[A, B](zio: ZIO[A], f: A => B) extends ZIO[B] {

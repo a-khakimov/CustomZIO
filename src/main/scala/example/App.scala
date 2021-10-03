@@ -158,3 +158,15 @@ object fork extends ZIOApp {
 
   def run = forkedZIO
 }
+
+object zipPar extends ZIOApp {
+
+  val asyncZIO: ZIO[Int] =
+    ZIO.async[Int] { complete =>
+      println("Async started")
+      Thread.sleep(1000)
+      complete(scala.util.Random.nextInt(999))
+    }
+
+  def run: ZIO[(Int, Int)] = asyncZIO zipPar asyncZIO
+}
