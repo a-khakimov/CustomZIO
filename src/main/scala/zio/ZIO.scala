@@ -152,11 +152,10 @@ sealed trait ZIO[+A] { self =>
               }
             }
 
-          //case ZIO.Fork(zio) =>
-          //???
-          //val fiber: Fiber[A] = new FiberImpl(zio)
-          //fiber.start()
-          //callback(fiber)
+          case ZIO.Fork(zio) =>
+            val fiber = new FiberImpl(zio)
+            fiber.start()
+            complete(fiber)
         }
       }
     }
