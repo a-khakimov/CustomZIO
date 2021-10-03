@@ -2,6 +2,17 @@ package zio
 
 import scala.concurrent.ExecutionContext
 
+// Declarative encoding
+// async
+// ZIO[R, E, A]
+// Stack safety
+// Execution context
+// Concurrency safety
+// Type safety
+// Error handling
+// Environment
+// Interruption
+
 trait Fiber[+A] {
   def start(): Unit
   // 1. Early Completion
@@ -14,8 +25,8 @@ class FiberImpl[A](zio: ZIO[A]) extends Fiber[A] {
   var callbacks: List[A => Any] = List.empty[A => Any]
 
   override def start(): Unit =
-    ExecutionContext.global.execute { () =>
-      zio.run { a =>
+    ExecutionContext.global.execute {
+      () => zio.run { a =>
         maybeResult = Some(a)
         callbacks.foreach { callback =>
           callback(a)
@@ -25,10 +36,8 @@ class FiberImpl[A](zio: ZIO[A]) extends Fiber[A] {
 
   override def join: ZIO[A] =
     maybeResult match {
-      case Some(value) =>
-        ZIO.succeedNow(value)
-      case None =>
-        ZIO.async { complete =>
+      case Some(value) => ZIO.succeedNow(value)
+      case None        => ZIO.async { complete =>
           callbacks = complete :: callbacks
         }
     }
@@ -37,12 +46,6 @@ class FiberImpl[A](zio: ZIO[A]) extends Fiber[A] {
 sealed trait ZIO[+A] { self =>
 
   def run(callback: A => Unit): Unit
-
-  def zip[B](that: ZIO[B]): ZIO[(A, B)] =
-    for {
-      a <- self
-      b <- that
-    } yield (a, b)
 
   def map[B](f: A => B): ZIO[B] =
     flatMap(f andThen ZIO.succeedNow)
@@ -56,6 +59,24 @@ sealed trait ZIO[+A] { self =>
   def fork: ZIO[Fiber[A]] =
     ZIO.Fork(self)
 
+  def zip[B](that: ZIO[B]): ZIO[(A, B)] =
+    for {
+      a <- self
+      b <- that
+    } yield (a, b)
+
+  def *>[B](that: ZIO[B]): ZIO[B] =
+    self zipRight that
+
+  def zipRight[B](that: ZIO[B]): ZIO[B] =
+    zipWith(that)((_, b) => b)
+
+  def zipWith[B, C](that: ZIO[B])(f: (A, B) => C): ZIO[C] =
+    for {
+      a <- self
+      b <- that
+    } yield f(a, b)
+
   def zipPar[B](that: ZIO[B]): ZIO[(A, B)] =
     for {
       aF <- self.fork
@@ -63,6 +84,10 @@ sealed trait ZIO[+A] { self =>
       a <- aF.join
       b <- bF.join
     } yield (a, b)
+
+  def repeat(n: Int): ZIO[Unit] =
+    if (n <= 0) ZIO.succeedNow()
+    else self *> repeat(n - 1)
 }
 
 object ZIO {
