@@ -16,6 +16,8 @@ trait ZIOApp {
     run.run {
       result => println(s"Result: $result")
     }
+
+    Thread.sleep(5000)
   }
 }
 
@@ -132,4 +134,27 @@ object async extends ZIOApp {
     }
 
   def run = asyncZIO
+}
+
+object fork extends ZIOApp {
+
+  val asyncZIO: ZIO[Int] =
+    ZIO.async[Int] { complete =>
+      println("Async started")
+      Thread.sleep(1000)
+      complete(scala.util.Random.nextInt(999))
+    }
+
+  def printLine(message: String): ZIO[Unit] =
+    ZIO.succeed(println(message))
+
+  val forkedZIO = for {
+    fiber1 <- asyncZIO.fork
+    fiber2 <- asyncZIO.fork
+    _      <- printLine("forked")
+    int1   <- fiber1.join
+    int2   <- fiber2.join
+  } yield s"Fork($int1, $int2)"
+
+  def run = forkedZIO
 }

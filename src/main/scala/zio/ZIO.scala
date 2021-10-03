@@ -1,5 +1,39 @@
 package zio
 
+import scala.concurrent.ExecutionContext
+
+trait Fiber[+A] {
+  def start(): Unit
+  // 1. Early Completion
+  // 2. Late Completion
+  def join: ZIO[A]
+}
+
+class FiberImpl[A](zio: ZIO[A]) extends Fiber[A] {
+  var maybeResult: Option[A] = None
+  var callbacks: List[A => Any] = List.empty[A => Any]
+
+  override def start(): Unit =
+    ExecutionContext.global.execute { () =>
+      zio.run { a =>
+        maybeResult = Some(a)
+        callbacks.foreach { callback =>
+          callback(a)
+        }
+      }
+    }
+
+  override def join: ZIO[A] =
+    maybeResult match {
+      case Some(value) =>
+        ZIO.succeedNow(value)
+      case None =>
+        ZIO.async { complete =>
+          callbacks = complete :: callbacks
+        }
+    }
+}
+
 sealed trait ZIO[+A] { self =>
 
   def run(callback: A => Unit): Unit
@@ -15,6 +49,9 @@ sealed trait ZIO[+A] { self =>
 
   def as[B](value: B): ZIO[B] =
     self.map(_ => value)
+
+  def fork: ZIO[Fiber[A]] =
+    ZIO.Fork(self)
 }
 
 object ZIO {
@@ -67,5 +104,13 @@ object ZIO {
   case class Async[A](register: (A => Any) => Any) extends ZIO[A] {
     override def run(callback: A => Unit): Unit =
       register(callback)
+  }
+
+  case class Fork[A](zio: ZIO[A]) extends ZIO[Fiber[A]] {
+    override def run(callback: Fiber[A] => Unit): Unit = {
+      val fiber: Fiber[A] = new FiberImpl(zio)
+      fiber.start()
+      callback(fiber)
+    }
   }
 }
