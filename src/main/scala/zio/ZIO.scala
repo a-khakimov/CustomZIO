@@ -90,9 +90,13 @@ sealed trait ZIO[+A] { self =>
   final def run(callback: A => Unit): Unit = {
 
     type Erased = ZIO[Any]
+    type ErasedCallback = Any => Unit
     type Cont   = Any => Erased
 
     def erase[A](zio: ZIO[A]): Erased = zio
+
+    def eraseCallback[A](cb: A => Unit): ErasedCallback =
+      cb.asInstanceOf[ErasedCallback]
 
     val stack = scala.collection.mutable.Stack[Cont]()
 
@@ -128,7 +132,15 @@ sealed trait ZIO[+A] { self =>
           currentZIO = zio
 
         case ZIO.Async(register) =>
-          ???
+          if (stack.isEmpty) {
+            loop = false
+            register(eraseCallback(callback))
+          } else {
+            register { a =>
+              val cont = stack.pop()
+              currentZIO = cont(a)
+            }
+          }
           //register(callback)
 
         //case ZIO.Fork(zio) =>
