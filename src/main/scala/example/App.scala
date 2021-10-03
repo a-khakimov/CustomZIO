@@ -99,12 +99,12 @@ object forComprehension extends ZIOApp {
   def printLine(message: String): ZIO[Unit] =
     ZIO.succeed(println(message))
 
-  val flatMappedZIO = for {
+  val flatMappedZIO: ZIO[String] = for {
     tuple <- zippedZIO
     _     <- printLine(s"Tuple: $tuple")
   } yield "Nice"
 
-  def run = flatMappedZIO
+  def run: ZIO[String] = flatMappedZIO
 }
 
 object as extends ZIOApp {
@@ -115,13 +115,13 @@ object as extends ZIOApp {
   def printLine(message: String): ZIO[Unit] =
     ZIO.succeed(println(message))
 
-  val flatMappedZIO =
+  val flatMappedZIO: ZIO[String] =
     zippedZIO.flatMap { t =>
       printLine(s"Tuple: $t")
         .as("Nice")
     }
 
-  def run = flatMappedZIO
+  def run: ZIO[String] = flatMappedZIO
 }
 
 object async extends ZIOApp {
@@ -133,7 +133,7 @@ object async extends ZIOApp {
       complete(10)
     }
 
-  def run = asyncZIO
+  def run: ZIO[Int] = asyncZIO
 }
 
 object fork extends ZIOApp {
@@ -148,7 +148,7 @@ object fork extends ZIOApp {
   def printLine(message: String): ZIO[Unit] =
     ZIO.succeed(println(message))
 
-  val forkedZIO = for {
+  val forkedZIO: ZIO[String] = for {
     fiber1 <- asyncZIO.fork
     fiber2 <- asyncZIO.fork
     _      <- printLine("forked")
@@ -156,7 +156,7 @@ object fork extends ZIOApp {
     int2   <- fiber2.join
   } yield s"Fork($int1, $int2)"
 
-  def run = forkedZIO
+  def run: ZIO[String] = forkedZIO
 }
 
 object zipPar extends ZIOApp {

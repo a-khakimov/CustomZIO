@@ -45,7 +45,7 @@ sealed trait ZIO[+A] { self =>
     } yield (a, b)
 
   def map[B](f: A => B): ZIO[B] =
-    ZIO.Map(self, f)
+    flatMap(f andThen ZIO.succeedNow)
 
   def flatMap[B](f: A => ZIO[B]): ZIO[B] =
     ZIO.FlatMap(self, f)
@@ -85,13 +85,6 @@ object ZIO {
   case class Effect[A](f: () => A) extends ZIO[A] {
     override def run(callback: A => Unit): Unit =
       callback(f())
-  }
-
-  case class Map[A, B](zio: ZIO[A], f: A => B) extends ZIO[B] {
-    override def run(callback: B => Unit): Unit =
-      zio.run { a =>
-        callback(f(a))
-      }
   }
 
   case class FlatMap[A, B](zio: ZIO[A], f: A => ZIO[B]) extends ZIO[B] {
