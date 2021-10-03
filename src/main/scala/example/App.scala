@@ -173,10 +173,7 @@ object zipPar extends ZIOApp {
 
 object stackSafety extends ZIOApp {
 
-  val program: ZIO[Unit] =
-    ZIO
-      .succeed(println("Hui"))
-      .repeat(10000000)
+  val program = ZIO.succeed(println("Hui"))
 
-  def run: ZIO[Unit] = program
+  def run = program.repeat(3)
 }
