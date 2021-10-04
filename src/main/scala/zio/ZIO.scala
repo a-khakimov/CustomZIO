@@ -1,5 +1,6 @@
 package zio
 
+import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.ExecutionContext
 
 // Declarative encoding
@@ -21,26 +22,70 @@ trait Fiber[+A] {
 }
 
 class FiberImpl[A](zio: ZIO[A]) extends Fiber[A] {
+
+  sealed trait FiberState
+
+  case class Running(callbacks: List[A => Any]) extends FiberState
+  case class Done(result: A) extends FiberState
+
+  val state: AtomicReference[FiberState] =
+    new AtomicReference(Running(List.empty))
+
+  def complete(result: A): Unit = {
+    var loop = true
+    //var toComplete: List[A => Any] = List.empty
+    while (loop) {
+      val oldState = state.get()
+      oldState match {
+        case Running(callbacks) =>
+          if (state.compareAndSet(oldState, Done(result))) {
+            callbacks.foreach(callback => callback(result))
+            loop = false
+          }
+        case Done(result) =>
+          throw new Exception(s"Internal defect: Fiber being completed multiple times ($result)")
+      }
+    }
+  }
+  // var i = 0
+  // for {
+  //   _ <- ZIO.succeed(i += 1).fork.repeat(10000)
+  //   result <- ZIO.succeed(i)
+  // } yield result
+
   var maybeResult: Option[A] = None
   var callbacks: List[A => Any] = List.empty[A => Any]
 
   override def start(): Unit =
     ExecutionContext.global.execute {
-      () => zio.run { a =>
-        maybeResult = Some(a)
-        callbacks.foreach { callback =>
-          callback(a)
-        }
-      }
+      () => zio.run(complete)
     }
 
   override def join: ZIO[A] =
-    maybeResult match {
-      case Some(value) => ZIO.succeedNow(value)
-      case None        => ZIO.async { complete =>
-          callbacks = complete :: callbacks
-        }
+    ZIO.async { callback =>
+      callbacks = callback :: callbacks
     }
+    //maybeResult match {
+    //  case Some(value) => ZIO.succeedNow(value)
+    //  case None        => ZIO.async { complete =>
+    //      callbacks = complete :: callbacks
+    //    }
+    //}
+
+  def await(callback: A => Any): Unit = {
+    var loop = true
+    while (loop) {
+      val oldState = state.get()
+      oldState match {
+        case Running(callbacks) =>
+          val newState = Running(callback :: callbacks)
+          loop = state.compareAndSet(oldState, newState)
+        case Done(result) =>
+          callback(result)
+          loop = false
+      }
+    }
+  }
 }
 
 sealed trait ZIO[+A] { self =>
@@ -122,7 +167,7 @@ sealed trait ZIO[+A] { self =>
 
       while (loop) {
 
-        println(currentZIO)
+        //println(currentZIO)
 
         currentZIO match {
 
